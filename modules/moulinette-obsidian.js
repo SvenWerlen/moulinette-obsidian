@@ -219,7 +219,7 @@ export class MoulinetteObsidian {
   /**
    * Generates all the required files for Obsidian
    */
-  static async exportWorld({ exportScenes=false, exportActors=false, exportItems=false, exportArticles=false, exportTables=true } = {}) {
+  static async exportWorld({ exportScenes=true, exportActors=true, exportItems=true, exportArticles=true, exportTables=true } = {}) {
     const FILEUTIL = game.moulinette.applications.MoulinetteFileUtil
     const rootFolder = `moulinette-obsidian/${game.world.id}`
     
