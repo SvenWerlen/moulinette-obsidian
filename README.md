@@ -9,7 +9,16 @@
 See [www.moulinette.cloud](https://www.moulinette.cloud) website.
 
 Moulinette Obsidian is a [FoundryVTT](https://foundryvtt.com/) module which provides tools for integrating FVTT/Moulinette with [Obsidian](https://obsidian.md/).
-* Export a world as Obsidian Vault.
+
+## <a name="howto"/>How To
+
+### Export a world as Obsidian Vault
+
+* Install and enable the module
+* Create a new macro with the following content : `game.moulinette.applications.MoulinetteObsidian.exportWorld()`
+* Run the macro (see the console F12 to follow the progress or check any error)
+* Open Obsidian
+* Create a new Vault from the following folder : `<FVTT_HOME>/Data/moulinette-obsidian/<your-world>`
 
 ## <a name="install"/>Install the module
 
