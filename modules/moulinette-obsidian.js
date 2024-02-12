@@ -124,9 +124,9 @@ export class MoulinetteObsidian {
       htmlContent = htmlContent.replace(ref[0], `<code title="${ref[1]}">${ref[2]}</code>`)
     }
     // looking for references like [[/r 3d6[psychic]]]{3d6 Psychic Damage}
-    const macros = [...htmlContent.matchAll(/\[\[(\/r[^­\}]+)\{([^}]+)\}/g)]
+    const macros = [...htmlContent.matchAll(/\[\[([^­\}]+)\{([^}]+)\}/g)]
     for(const ref of macros) {
-      htmlContent = htmlContent.replace(ref[0], `⚅ <code title="${ref[1].slice(0,-2)}">${ref[2]}</code>`)
+      htmlContent = htmlContent.replace(ref[0], `<code title="${ref[1].slice(0,-2)}">${ref[2]}</code>`)
     }
     return htmlContent
   }
@@ -193,7 +193,7 @@ export class MoulinetteObsidian {
           const assetImg = `${assetType}/${relFolder}${a.name}.${ext}`
           if(a[image]) {
             await MoulinetteObsidian.uploadBinary(a[image], `${a.name}.${ext}`, folder)    
-            assetData = assetData.replace("ASSETIMG", `![[${assetImg}|200]]`)
+            assetData = assetData.replace("ASSETIMG", `![[${assetImg}|150]]`)
             assetTableRow = assetTableRow.replace("ASSETIMG", `![[${assetImg}\\|100]]`)
           } else {
             assetData = assetData.replace("ASSETIMG", "")
@@ -203,7 +203,7 @@ export class MoulinetteObsidian {
         else {
           const assetImg = `${assetType}/${relFolder}${a.name}.webp`
           await image(a, folder, `${a.name}.webp`)
-          assetData = assetData.replace("ASSETIMG", `![[${assetImg}|200]]`)
+          assetData = assetData.replace("ASSETIMG", `![[${assetImg}|150]]`)
           assetTableRow = assetTableRow.replace("ASSETIMG", `![[${assetImg}\\|100]]`)
         }
       }
@@ -219,7 +219,7 @@ export class MoulinetteObsidian {
   /**
    * Generates all the required files for Obsidian
    */
-  static async exportWorld({ exportScenes=true, exportActors=true, exportItems=true, exportArticles=true, exportTables=true } = {}) {
+  static async exportWorld({ exportScenes=false, exportActors=false, exportItems=false, exportArticles=false, exportTables=true } = {}) {
     const FILEUTIL = game.moulinette.applications.MoulinetteFileUtil
     const rootFolder = `moulinette-obsidian/${game.world.id}`
     
@@ -239,13 +239,37 @@ export class MoulinetteObsidian {
     // export actors
     // -------------
     if(exportActors) {
-      await MoulinetteObsidian.processAssets("Actors", game.actors, "img");
+      const mappings = {
+        "ACTORHPCUR": "system.attributes.hp.value",
+        "ACTORHPMAX": "system.attributes.hp.max",
+      }
+      await MoulinetteObsidian.processAssets("Actors", game.actors, "img", mappings, async function(a, folder) {
+        let content = await MoulinetteObsidian.downloadDependencies(MoulinetteObsidian.getValue(a, "system.details.biography.value"), folder)
+        content = await MoulinetteObsidian.replaceReferences(content)
+        if(content.length == 0) {
+          content = "*No biography*"
+        }
+        return content
+      });
     }
 
     // export items
     // -------------
     if(exportItems) {
-      await MoulinetteObsidian.processAssets("Items", game.items, "img");
+      const mappings = {
+        "ITEMQUANTITY": "system.quantity",
+        "ITEMWEIGHT": "system.weight",
+        "ITEMPRICE": "system.price.value",
+        "ITEMCURRENCY": "system.price.denomination"
+      }
+      await MoulinetteObsidian.processAssets("Items", game.items, "img", mappings, async function(i, folder) {
+        let content = await MoulinetteObsidian.downloadDependencies(MoulinetteObsidian.getValue(i, "system.description.value"), folder)
+        content = await MoulinetteObsidian.replaceReferences(content)
+        if(content.length == 0) {
+          content = "*No description*"
+        }
+        return content
+      });
     }
 
     // export articles
@@ -272,10 +296,29 @@ export class MoulinetteObsidian {
       });
     }
 
-    // export articles
+    // export rollable tables
     // -------------
     if(exportTables) {
-      await MoulinetteObsidian.processAssets("Rollable Tables", game.tables, "img");
+      const mappings = {
+        "TABLEFORMULA": "formula"
+      }
+      await MoulinetteObsidian.processAssets("Rollable Tables", game.tables, "img", mappings, async function(t, folder) {
+        let content = await MoulinetteObsidian.downloadDependencies(MoulinetteObsidian.getValue(t, "description"), folder)
+        content = await MoulinetteObsidian.replaceReferences(content)
+        
+        // generate table
+        content += "\n\n### Table Results\n\n" + 
+          "| Range | Description |\n" +
+          "| ---   | --- |\n"
+        if(t.collections && t.collections.results) {
+          for(const r of t.collections.results) {
+            let text = await MoulinetteObsidian.replaceReferences(MoulinetteObsidian.getValue(r, "text"))
+            text = await MoulinetteObsidian.replaceReferences(text)
+            content += `| ${r.range[0]}-${r.range[1]} | ${text} |\n`
+          }
+        }
+        return content
+      });
     }
 
     // home page

@@ -1,10 +1,11 @@
 ---
 uuid: ASSETUUID
 type: actor
+hp: ACTORHPCUR / ACTORHPMAX
 ---
 
 ## ASSETNAME
 
 ASSETIMG
 
-Blabla
+<div>ASSETCONTENT</div>
