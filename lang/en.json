@@ -1,0 +1,7 @@
+{
+  "mtte.export2obsidian": "Export",
+  "mtte.exporting": "Exporting…",
+  "mtte.exportingType": "Exporting… {documentType}",
+  "mtte.moulinetteObsidianExporter": "Moulinette Obsidian Exporter",
+  "mtte.obsidianExporterDescription": "This utility allows you to export the current world to Obsidian format. Choose below which documents you want to export and the permissions to apply."
+}

@@ -153,11 +153,12 @@ export class MoulinetteObsidian {
    * 
    * @param {string} assetType Type of assets (ex: Scenes or Actors)
    * @param {array} assets List of assets
+   * @param {MoulinetteProgress} progressbar (for continuous updates)
    * @param {string|async function} img Image path location within asset OR function generate the image (ex: for scene)
    * @param {object} mapping List of mappings (key|path) of values to be replaced in tables
    * @param {async function} content Function generating Markdown content for a specific asset (must return string)
    */
-  static async processAssets(assetType, assets, image, mappings, content) {
+  static async processAssets(assetType, assets, progressbar, image, mappings, content) {
     const FILEUTIL = game.moulinette.applications.MoulinetteFileUtil
     const rootFolder = `moulinette-obsidian/${game.world.id}`
 
@@ -174,6 +175,8 @@ export class MoulinetteObsidian {
     }
 
     for(const a of assets) {
+      progressbar.setProgress(100 * progressbar.idx / progressbar.count, game.i18n.format("mtte.exportingType", { documentType: assetType}))
+
       const relFolder = MoulinetteObsidian.getFolderPath(a.folder)
       const folder = relFolder.length > 0 ? `${assetFolder}/${relFolder}` : assetFolder + "/"
       
@@ -210,6 +213,8 @@ export class MoulinetteObsidian {
 
       await MoulinetteObsidian.uploadMarkdown(assetData, `${a.name}.md`, folder)    
       assetList[`${relFolder}/${a.name}`] = assetTableRow + "\n"
+
+      progressbar.idx++
     }
 
     const assetsMD = MoulinetteObsidian.generateList(assetList, assetTableTemplate)
@@ -223,16 +228,33 @@ export class MoulinetteObsidian {
     const FILEUTIL = game.moulinette.applications.MoulinetteFileUtil
     const rootFolder = `moulinette-obsidian/${game.world.id}`
     
+    let count = 0
+    if(exportScenes) count += game.scenes.size
+    if(exportActors) count += game.actors.size
+    if(exportItems) count += game.items.size
+    if(exportArticles) count += game.journal.size
+    if(exportTables) count += game.tables.size
+    
+    const progressbar = new game.moulinette.applications.MoulinetteProgress(game.i18n.localize("mtte.exporting"))
+    progressbar.idx = 0
+    progressbar.count = count
+    progressbar.render(true)
+
     // export scenes
     // -------------
     if(exportScenes) {
-      await MoulinetteObsidian.processAssets("Scenes", game.scenes, async function(sc, folder, filename) {
+      await MoulinetteObsidian.processAssets("Scenes", game.scenes, progressbar, async function(sc, folder, filename) {
         const width = 600
         const height = (sc.height / sc.width) * 600;
         const thumb = await sc.createThumbnail({width:width, height:height, format: "image/webp", quality: 0.8 })
         const blob = FILEUTIL.b64toBlob(thumb.thumb)
         const mdFileThumb = new File([blob], filename, { type: blob.type, lastModified: new Date() })
         await FILEUTIL.uploadFile(mdFileThumb, filename, folder, true)
+
+        // clear cache to avoid (or mitigate) memory leaks
+        for(const key of PIXI.Assets.cache._cacheMap.keys()) {
+          await PIXI.Assets.unload(key)
+        }
       });
     }
 
@@ -243,7 +265,7 @@ export class MoulinetteObsidian {
         "ACTORHPCUR": "system.attributes.hp.value",
         "ACTORHPMAX": "system.attributes.hp.max",
       }
-      await MoulinetteObsidian.processAssets("Actors", game.actors, "img", mappings, async function(a, folder) {
+      await MoulinetteObsidian.processAssets("Actors", game.actors, progressbar, "img", mappings, async function(a, folder) {
         let content = await MoulinetteObsidian.downloadDependencies(MoulinetteObsidian.getValue(a, "system.details.biography.value"), folder)
         content = await MoulinetteObsidian.replaceReferences(content)
         if(content.length == 0) {
@@ -262,7 +284,7 @@ export class MoulinetteObsidian {
         "ITEMPRICE": "system.price.value",
         "ITEMCURRENCY": "system.price.denomination"
       }
-      await MoulinetteObsidian.processAssets("Items", game.items, "img", mappings, async function(i, folder) {
+      await MoulinetteObsidian.processAssets("Items", game.items, progressbar, "img", mappings, async function(i, folder) {
         let content = await MoulinetteObsidian.downloadDependencies(MoulinetteObsidian.getValue(i, "system.description.value"), folder)
         content = await MoulinetteObsidian.replaceReferences(content)
         if(content.length == 0) {
@@ -278,7 +300,7 @@ export class MoulinetteObsidian {
       const mappings = {
         "PAGES": "#pages"
       }
-      await MoulinetteObsidian.processAssets("Articles", game.journal, null, mappings, async function(a, folder) {
+      await MoulinetteObsidian.processAssets("Articles", game.journal, progressbar, null, mappings, async function(a, folder) {
         let content = ""
         for(const p of a.pages) {
           content += `---\n\n## ${p.name}\n\n`
@@ -302,7 +324,7 @@ export class MoulinetteObsidian {
       const mappings = {
         "TABLEFORMULA": "formula"
       }
-      await MoulinetteObsidian.processAssets("Rollable Tables", game.tables, "img", mappings, async function(t, folder) {
+      await MoulinetteObsidian.processAssets("Rollable Tables", game.tables, progressbar, "img", mappings, async function(t, folder) {
         let content = await MoulinetteObsidian.downloadDependencies(MoulinetteObsidian.getValue(t, "description"), folder)
         content = await MoulinetteObsidian.replaceReferences(content)
         
@@ -321,14 +343,17 @@ export class MoulinetteObsidian {
       });
     }
 
+    progressbar.setProgress(100)
+
     // home page
     const homeTemplate = await MoulinetteObsidian.getTemplate("home")
     let homeHTML = homeTemplate.replace("WORLDNAME", game.world.title)
-    homeHTML = homeHTML.replace("SCENES", game.scenes.size)
-      .replace("ACTORS", game.actors.size)
-      .replace("ITEMS", game.items.size)
-      .replace("ARTICLES", game.journal.size)
-      .replace("ROLLTABLES", game.tables.size)
+    homeHTML = homeHTML.replace("SCENES#", exportScenes ? `| [[All Actors\\|Actors]] | ${game.scenes.size} |\n` : "" )
+      .replace("ACTORS#", exportActors ? `| [[All Scenes\\|Scenes]] | ${game.actors.size} |\n`: "" )
+      .replace("ITEMS#", exportItems ? `| [[All Items\\|Items]] | ${game.items.size} |\n` : "" )
+      .replace("ARTICLES#", exportArticles ? `| [[All Articles\\|Articles]] | ${game.journal.size} |\n` : "" )
+      .replace("ROLLTABLES#", exportTables ? `| [[All Rollable Tables\\|Rollable Tables]] | ${game.tables.size} |\n` : "" )
+            
     const description = await MoulinetteObsidian.downloadDependencies(MoulinetteObsidian.getValue(game.world, "description"), rootFolder)
     homeHTML = homeHTML.replace("WORLDDESCRIPTION", description)
     

@@ -1,0 +1,36 @@
+<form autocomplete="off" onsubmit="event.preventDefault();">
+
+<div class="body">
+  <div class="header">
+    <em>{{localize "mtte.obsidianExporterDescription"}}</em>
+  </div>
+
+  <table>
+  <tr><td style="vertical-align:top;">
+  <h2>{{localize "COMPENDIUM.Type"}} :</h2>
+  <div class="main">
+    {{#each documents as |d|}}
+    <div><input type="checkbox" id="export{{d.id}}" name="{{d.id}}" value="1" {{#if d.checked}}checked="checked"{{/if}} /> <label for="export{{d.id}}">{{d.name}}</label></div>
+    {{/each}}
+  </div>
+  </td>
+
+  <td style="vertical-align:top;">
+  <h2>{{localize "Permissions"}} :</h2>
+    {{#each perms as |p|}}
+    <div>
+      <input type="radio" id="perm{{p.id}}" name="perms" value="{{p.id}}" {{#if p.selected}}checked="checked"{{/if}} />
+      <label for="perm{{p.id}}">{{p.name}}</label>
+    </div>
+    {{/each}}
+    
+  </td>
+  </tr>
+  </table>
+
+  <div class="footer">
+    <button class="export2obsidian"><i class="fas fa-file-export"></i> {{localize "mtte.export2obsidian"}}</button>
+  </div>
+
+</div>
+</form>

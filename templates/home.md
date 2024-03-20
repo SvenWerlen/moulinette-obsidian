@@ -4,11 +4,7 @@
 
 | Content Type | # of assets |
 | ---          | :--:        |
-| [[All Scenes\|Scenes]] | SCENES |
-| [[All Actors\|Actors]] | ACTORS |
-| [[All Items\|Items]] | ITEMS |
-| [[All Articles\|Articles]] | ARTICLES |
-| [[All Rollable Tables\|Rollable Tables]] | ROLLTABLES |
+SCENES#ACTORS#ITEMS#ARTICLES#ROLLTABLES#
 
 ### About Moulinette
 
