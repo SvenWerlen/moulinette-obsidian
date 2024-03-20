@@ -1,12 +1,12 @@
 {
   "title": "Moulinette Obsidian",
   "description": "Moulinette Utilities for Obsidian",
-  "version": "11.0.2",
+  "version": "11.1.0",
   "esmodules": [
     "moulinette-obsidian.js"
   ],
   "url": "https://github.com/SvenWerlen/moulinette-obsidian",
-  "download": "https://github.com/SvenWerlen/moulinette-obsidian/archive/v-11.0.2.zip",
+  "download": "https://github.com/SvenWerlen/moulinette-obsidian/archive/v-11.1.0.zip",
   "manifest": "https://raw.githubusercontent.com/SvenWerlen/moulinette-obsidian/main/module.json",
   "id": "moulinette-obsidian",
   "authors": [
@@ -35,7 +35,7 @@
         "id": "moulinette-core",
         "type": "module",
         "compatibility": {
-          "minimum": "11.0.2"
+          "minimum": "11.1.0"
         }
       }
     ]
