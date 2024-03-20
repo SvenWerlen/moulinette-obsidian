@@ -16,7 +16,7 @@ export class MoulinetteObsidianExporter extends FormApplication {
       title: game.i18n.localize("mtte.moulinetteObsidianExporter"),
       template: "modules/moulinette-obsidian/templates/exporter.hbs",
       width: 500,
-      closeOnSubmit: false,
+      closeOnSubmit: true,
       submitOnClose: false,
     });
   }
@@ -35,7 +35,7 @@ export class MoulinetteObsidianExporter extends FormApplication {
       perms.push({
         id: u.id,
         name: u.name,
-        selected: u.id == game.userId
+        selected: (!settings["permissions"] && u.id == game.userId) || u.id == settings["permissions"]
       })
     })
     return {
@@ -52,10 +52,10 @@ export class MoulinetteObsidianExporter extends FormApplication {
       exportActors: inputs["actors"] == "1",
       exportItems: inputs["items"] == "1",
       exportArticles: inputs["articles"] == "1",
-      exportTables: inputs["tables"] == "1"
+      exportTables: inputs["tables"] == "1",
+      permissions: inputs["perms"]
     }
     game.settings.set("moulinette-obsidian", "lastsettings", settings);
-    
     MoulinetteObsidian.exportWorld(settings)
   }
 
