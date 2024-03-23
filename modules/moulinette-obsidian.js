@@ -29,6 +29,13 @@ export class MoulinetteObsidian {
   }
 
   /**
+   * Clean filenames to avoid conflicts in MD
+   */
+  static cleanFilename(filename) {
+    return filename.replace(/[^0-9a-zA-Z_\- ]/g, '')
+  }
+
+  /**
    * Uploads the content (string) as markdown file
    */
   static async uploadMarkdown(content, filename, folder) {
@@ -109,7 +116,7 @@ export class MoulinetteObsidian {
     const imgRefs = [...htmlContent.matchAll(/<img [^>]*src=[\\]?"([^"]+)[\\]?"/g)]
     for(const ref of imgRefs) {
       if(ref[1].toLowerCase().startsWith("http")) continue
-      const filename = ref[1].split("/").pop()
+      const filename = ref[1].split("/").pop().split("?")[0]
       const relFolder = ref[1].slice(0, -(filename.length+1))
       await MoulinetteObsidian.uploadBinary(ref[1], filename, folder + "/_Deps/" + relFolder, false)
       htmlContent = htmlContent.replace('"' + ref[1], `"_Deps/${relFolder}/${filename}`)
@@ -193,33 +200,40 @@ export class MoulinetteObsidian {
           assetData = assetData.replace("ASSETCONTENT", await content(a, rootFolder))
         }
 
-        let assetTableRow = assetTableRowTemplate.replace("ASSETNAME", `[[${assetType}/${relFolder}${a.name}\\|${a.name}]]`)
+        const name = MoulinetteObsidian.cleanFilename(a.name)
+        let assetTableRow = assetTableRowTemplate.replace("ASSETNAME", `[[${assetType}/${relFolder}${name}\\|${name}]]`)
         assetTableRow = MoulinetteObsidian.applyMappings(assetTableRow, a, mappings)
         
         if(image) {
           // image is the path within the asset object which contains the image location
           if (typeof image === 'string' || image instanceof String) {
-            const ext = a[image].split('.').pop();
-            const assetImg = `${assetType}/${relFolder}${a.name}.${ext}`
-            if(a[image]) {
-              await MoulinetteObsidian.uploadBinary(a[image], `${a.name}.${ext}`, folder)    
+            if(!a[image]) {
+              assetData = assetData.replace("ASSETIMG", "")
+              assetTableRow = assetTableRow.replace("ASSETIMG", "")
+            }
+            else if(a[image].startsWith("http")) {
+              assetData = assetData.replace("ASSETIMG", `![${name}|150](${a[image]})`)
+              assetTableRow = assetTableRow.replace("ASSETIMG", `![${name}\\|100](${a[image]})`)
+            }
+            else {
+              const ext = a[image].split('.').pop().split('?')[0];
+              const assetImg = `${assetType}/${relFolder}${name}.${ext}` 
+              await MoulinetteObsidian.uploadBinary(a[image], `${name}.${ext}`, folder)    
               assetData = assetData.replace("ASSETIMG", `![[${assetImg}|150]]`)
               assetTableRow = assetTableRow.replace("ASSETIMG", `![[${assetImg}\\|100]]`)
-            } else {
-              assetData = assetData.replace("ASSETIMG", "")
             }
           } 
           // image is the function to generate an image for that asset
           else {
-            const assetImg = `${assetType}/${relFolder}${a.name}.webp`
-            await image(a, folder, `${a.name}.webp`)
+            const assetImg = `${assetType}/${relFolder}${name}.webp`
+            await image(a, folder, `${name}.webp`)
             assetData = assetData.replace("ASSETIMG", `![[${assetImg}|150]]`)
             assetTableRow = assetTableRow.replace("ASSETIMG", `![[${assetImg}\\|100]]`)
           }
         }
 
-        await MoulinetteObsidian.uploadMarkdown(assetData, `${a.name}.md`, folder)    
-        assetList[`${relFolder}/${a.name}`] = assetTableRow + "\n"
+        await MoulinetteObsidian.uploadMarkdown(assetData, `${name}.md`, folder)    
+        assetList[`${relFolder}/${name}`] = assetTableRow + "\n"
 
         filteredCount++
       }
